@@ -1,10 +1,11 @@
-# FOR TESTING USE BELOW
-
 import os
 import glob
 from osgeo import ogr
 import json
 from S57_attribute_dic import *
+import re
+import matplotlib
+import math
 
 def prepend_line(file_name, line):
     """ Insert given string as a new line at the beginning of a file """
@@ -70,7 +71,7 @@ def S57_to_json(str_path,output_path,chart,objects,object_types):
     chart_json = output_path + object_types + chart + ".json"
     json.dump(f1, open(os.path.join(chart_json), 'w'))
 
-def combo_json(output_path,combined_json_outpath):
+def combo_json(output_path,combined_json_outpath,object_types):
     # combine all the JSON files made into one JSON file
     file_list = []
     for file in os.listdir(output_path):
@@ -83,7 +84,7 @@ def combo_json(output_path,combined_json_outpath):
         print(files)
         f2 = json.load(open(os.path.join(output_path + files)))
         f1['features'].extend(f2['features'])
-    final_json = combined_json_outpath + "buoy_all_charts_TEST123.json"
+    final_json = combined_json_outpath+object_types+"_combined.json"
     json.dump(f1, open(os.path.join(final_json), 'w'))
     return final_json
 def json_to_ini_buoy(ini_output,json_file_path):
@@ -128,9 +129,126 @@ def json_to_ini_buoy(ini_output,json_file_path):
     line = "Number={}\n".format(count)
     prepend_line(ini_output + "buoy.ini", line)
 
+#LIGHT CONVERTION
 
 
 
+#convert the light charactersitics into the ini needed foramat of DL
+#D or L = 0.25 seconds
+def light(time):
+    light_on_list = []
+    while time>0:
+        light_on_list.append("L")
+        time -= 0.25
+    out = "".join(light_on_list)
+    return out
+
+
+def dark(time):
+    light_off_list = []
+    while time>0:
+        light_off_list.append("D")
+        time -= 0.25
+    out = "".join(light_off_list)
+    return out
+
+
+def light_seq(light_time_list):
+    temp = re.findall(r'\d+\.\d+', light_time_list)
+    res = list(map(float, temp))
+    if light_time_list[0] == '(':
+        seq = 'DL'
+    else:
+        seq = 'LD'
+    count = len(res)
+    flash = []
+    if len(res) == 1:
+        if seq == 'DL':
+            flash.append(dark(res[count-1]))
+        else:
+            flash.append(light(res[count-1]))
+    elif (len(res) % 2) == 0:
+        if seq == 'DL':
+            while count > 0:
+                flash.insert(0,light(res[count - 1]))
+                flash.insert(0,dark(res[count - 2]))
+                count -= 2
+        elif seq == 'LD':
+            while count > 0:
+                flash.insert(0,dark(res[count-1]))
+                flash.insert(0,light(res[count-2]))
+                count -= 2
+    else:
+        if seq == 'LD':
+            while count > 1:
+                flash.insert(0, light(res[count - 1]))
+                flash.insert(0, dark(res[count - 2]))
+                count -= 2
+                print(count)
+            print(count)
+            flash.insert(0, light(res[count - 1]))
+            count -= 1
+        elif seq == 'DL':
+            while count > 1:
+                flash.insert(0, dark(res[count - 1]))
+                flash.insert(0, light(res[count - 2]))
+                count -= 2
+            flash.insert(0, dark(res[count-1]))
+            count -= 1
+    light_char = ''.join(flash)
+    return(light_char)
+
+
+def json_to_ini_light(ini_output,json_file_path,height_eye):
+    if "Lights_" in json_file_path:
+        file_json = open(json_file_path)
+        json_data = json.load(file_json)
+        # create the INI file below
+        ini_file = open(ini_output + "light.ini", "w")
+        count = 0
+        for index, types in enumerate(json_data['features']):
+            key_colour = str(json_data['features'][index]['properties']["COLOUR"])
+            colour = colour_dic[key_colour]
+            try:
+                key_SIGSEQ = str(json_data['features'][index]['properties']["SIGSEQ"])
+                sequence = light_seq(key_SIGSEQ)
+            except KeyError:
+                sequence = 'L'
+            try:
+                key_SECTR1 = str(json_data['features'][index]['properties']["SECTR1"])
+                key_SECTR2 = str(json_data['features'][index]['properties']["SECTR2"])
+                StartAngle = key_SECTR1
+                EndAngle = key_SECTR2
+            except KeyError:
+                StartAngle = '0'
+                EndAngle = '360'
+            try:
+                key_height = str(json_data['features'][index]['properties']["HEIGHT"])
+                height = key_height
+                range_light = float(1.17 * (math.sqrt((float(height)*3.3) + math.sqrt(height_eye*3.3))))
+            except KeyError:
+                height = '4'
+                range_light = float(1.17 * (math.sqrt((float(height)*3.3) + math.sqrt(height_eye*3.3))))
+            range = str(int(round(range_light)))
+            red = int(matplotlib.colors.to_rgb(colour)[0] * 255)
+            green = int(matplotlib.colors.to_rgb(colour)[1] * 255)
+            blue = int(matplotlib.colors.to_rgb(colour)[2] * 255)
+            x = json_data['features'][index]['geometry']['coordinates'][0]
+            y = json_data['features'][index]['geometry']['coordinates'][1]
+            ini_file.write('Lat(%s)=%s\nLong(%s)=%s\nHeight(%s)=%s\nRed(%s)=%s\nGreen(%s)=%s\nBlue(%s)=%s\nRange(%s)=%s'
+                           '\nSequence(%s)="%s"\nStartAngle(%s)=%s\nEndAngle(%s)=%s\n\n'
+                           % (str(count+1), str(y), str(count+1), str(x),str(count+1),
+                              str(height),str(count+1), str(red),str(count+1), str(green),str(count+1),
+                              str(blue),str(count+1), str(range),str(count+1), str(sequence),str(count+1),
+                              str(StartAngle),str(count+1), str(EndAngle)))
+        # f.write('Type(%s)="(%s)"\nLAT(%s)=%s\nLONG(%s)=%s\n\n' % (str(count), str(buoy_to_ini_dic[key_to_lookup]),
+        # str(count), str(y), str(count), str(x)))
+            count += 1
+        ini_file.close()
+        line = "Number={}\n".format(count)
+        prepend_line(ini_output + "light.ini", line)
+    else:
+        return(None)
 
 """
 
