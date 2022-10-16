@@ -7,11 +7,11 @@ folderdir = 'E:/UMD_Project/SWIM/GIS/Charts/'
 # giving file extension
 ext = ('.000')
 
-output_path = "E:/UMD_Project/SWIM/GIS/Charts/"
+output_path = "E:/UMD_Project/SWIM/GIS/json/lights/temp/"
 objects = ['LIGHTS']
 object_types = "Lights"
-ini_output = "E:/UMD_Project/SWIM/GIS/Charts/"
-combined_json_outpath = "E:/UMD_Project/SWIM/GIS/Charts/"
+ini_output = "E:/UMD_Project/SWIM/GIS/ini/"
+combined_json_outpath = "E:/UMD_Project/SWIM/GIS/json/lights/"
 # iterating over directory and subdirectory to get desired result
 for path, dirc, files in os.walk(folderdir):
     for name in files:
@@ -22,10 +22,12 @@ for path, dirc, files in os.walk(folderdir):
 json_file_path = sc.combo_json(output_path,combined_json_outpath,object_types)
 sc.json_to_ini_light(ini_output,json_file_path,10)
 
+
+output_path = "E:/UMD_Project/SWIM/GIS/json/buoy/temp/"
 objects = ['BOYCAR', 'BOYINB', 'BOYISD', 'BOYLAT', 'BOYSAW', 'BOYSPP']
 object_types = "Buoy"
-ini_output = "E:/UMD_Project/SWIM/GIS/Charts/"
-combined_json_outpath = "E:/UMD_Project/SWIM/GIS/Charts/"
+ini_output = "E:/UMD_Project/SWIM/GIS/ini/"
+combined_json_outpath = "E:/UMD_Project/SWIM/GIS/json/buoy/"
 # iterating over directory and subdirectory to get desired result
 for path, dirc, files in os.walk(folderdir):
     for name in files:
