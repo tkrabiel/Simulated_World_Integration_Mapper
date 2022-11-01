@@ -217,19 +217,18 @@ def json_to_ini_light(ini_output,json_file_path,height_eye):
             try:
                 key_SECTR1 = str(json_data['features'][index]['properties']["SECTR1"])
                 key_SECTR2 = str(json_data['features'][index]['properties']["SECTR2"])
-                StartAngle = key_SECTR1
-                EndAngle = key_SECTR2
+                StartAngle = str(key_SECTR1)[:-2]
+                EndAngle = str(key_SECTR2)[:-2]
             except KeyError:
                 StartAngle = '0'
                 EndAngle = '360'
             try:
                 key_height = str(json_data['features'][index]['properties']["HEIGHT"])
-                height = key_height
-                range_light = float(1.17 * (math.sqrt((float(height)*3.3) + math.sqrt(height_eye*3.3))))
+                height = str(key_height)[:-2]
             except KeyError:
-                height = '4'
-                range_light = float(1.17 * (math.sqrt((float(height)*3.3) + math.sqrt(height_eye*3.3))))
-            range = str(int(round(range_light)))
+                height = '3.5'
+            range_light = int(1.17 * (math.sqrt((float(height)*3.3) + math.sqrt(float(height_eye)*3.3))))
+            range = int(round(range_light))
             red = int(matplotlib.colors.to_rgb(colour)[0] * 255)
             green = int(matplotlib.colors.to_rgb(colour)[1] * 255)
             blue = int(matplotlib.colors.to_rgb(colour)[2] * 255)
@@ -250,7 +249,27 @@ def json_to_ini_light(ini_output,json_file_path,height_eye):
     else:
         return(None)
 
+json_file_path = gpd.read_file("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBF/ENC_ROOT/US5NYCBF/soundSOUNDG.json/")
+
+
+
+def multitosingle(json_file_path):
+    df = gpd.read_file(json_file_path)
+    #json_data = json.load(file_json)
+    for idx, row in df.iterrows():
+        for shp in row.geometry:
+            x.append(shp.z)
+
 """
+#SOUNGIND TEST
+import geopandas as gpd
+df = gpd.read_file(r"E:\UMD_Project\SWIM\GIS\Charts\US5NYCBF\ENC_ROOT\US5NYCBF\US5VA51M.shp")
+for idx, row in df.iterrows():
+    for shp in row.geometry:
+        print(shp.x,shp.y,shp.z)
+
+
+
 
 
 files = glob.glob(output_path + '*.json')
