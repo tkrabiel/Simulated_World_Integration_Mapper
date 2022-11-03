@@ -31,3 +31,6 @@ catcam_dic = {'1':'north','2':'east','3':'south','4':'west'}#'cat#':'direction'
 
 #boyspp and bcnspp
 #1, firing 2,target 3,markership 4,degaussing 5,barge 6,cable, 7, spoil
+
+
+

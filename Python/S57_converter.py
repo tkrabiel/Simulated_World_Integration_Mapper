@@ -1,11 +1,22 @@
 import os
 import glob
+import osgeo
+import osgeo.ogr
+import pandas as pd
 from osgeo import ogr
 import json
 from S57_attribute_dic import *
 import re
 import matplotlib
 import math
+#import geopandas as gpd
+from osgeo import gdal, gdal_array
+import geopandas as gpd
+import geopandas as gpd
+from shapely.geometry import Point
+from shapely.geometry import MultiPoint
+import os
+import numpy as np
 
 def prepend_line(file_name, line):
     """ Insert given string as a new line at the beginning of a file """
@@ -57,19 +68,25 @@ def S57_to_json(str_path,output_path,chart,objects,object_types):
             # else:
             # print("Stop")
             # return()
-    # update all the JSON files so that they have their source within them i.e BOYLAT, DYMARK ect
-    file = data_list[0]
-    f1 = json.load(open(os.path.join(file)))
-    for name in f1['features']:
-        name['properties'].update({"OBJ_SOURCE": f1['name']})
-    data_list2 = data_list[1:]
-    for name in data_list2:
-        f2 = json.load(open(os.path.join(name)))
-        for items in f2['features']:
-            items['properties'].update({"OBJ_SOURCE": f2['name']})
-        f1['features'].extend(f2['features'])
-    chart_json = output_path + object_types + chart + ".json"
-    json.dump(f1, open(os.path.join(chart_json), 'w'))
+    # update all the JSON files so that they have their source within them i.e BOYLAT, DYMARK, DREDGE ect
+    try:
+        file = data_list[0]
+        print(file)
+        f1 = json.load(open(os.path.join(file)))
+        for name in f1['features']:
+            name['properties'].update({"OBJ_SOURCE": f1['name']})
+        data_list2 = data_list[1:]
+        for name in data_list2:
+            f2 = json.load(open(os.path.join(name)))
+            for items in f2['features']:
+                items['properties'].update({"OBJ_SOURCE": f2['name']})
+            f1['features'].extend(f2['features'])
+        chart_json = output_path + object_types + chart + ".json"
+        json.dump(f1, open(os.path.join(chart_json), 'w'))
+    except IndexError:
+        print(obj+" Not in this chart")
+
+
 
 def combo_json(output_path,combined_json_outpath,object_types):
     # combine all the JSON files made into one JSON file
@@ -87,6 +104,10 @@ def combo_json(output_path,combined_json_outpath,object_types):
     final_json = combined_json_outpath+object_types+"_combined.json"
     json.dump(f1, open(os.path.join(final_json), 'w'))
     return final_json
+
+def json_shp(json,shp):
+    os.system('ogr2ogr -f "ESRI Shapefile" ' + ' ' + shp + ' ' + json)
+
 def json_to_ini_buoy(ini_output,json_file_path):
     file_json = open(json_file_path)
     json_data = json.load(file_json)
@@ -249,92 +270,347 @@ def json_to_ini_light(ini_output,json_file_path,height_eye):
     else:
         return(None)
 
-json_file_path = gpd.read_file("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBF/ENC_ROOT/US5NYCBF/soundSOUNDG.json/")
+# json_file_path = gpd.read_file("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBF/ENC_ROOT/US5NYCBF/soundSOUNDG.json")
+#
+#
+#
+# def multitosingle(json_file_path):
+#     df = gpd.read_file(json_file_path)
+#     json_data = json.load(file_json)
+#     for idx, row in df.iterrows():
+#         for shp in row.geometry:
+#             x.append(shp.z)
+
+# from osgeo import gdal
+# import geopandas as gpd
+# import geopandas as gpd
+# from shapely.geometry import Point
+# from shapely.geometry import MultiPoint
+# import os
+# SOUNDG_file = r"E:\UMD_Project\SWIM\GIS\Charts\US5NYCBG\ENC_ROOT\US5NYCBG\SOUNDG.shp"
+# DRGARE_json = "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/dredgeDRGARE.json"
+# input_folder = "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/"
+# output_folder = "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/"
+#
+#
+# def S57_raster(SOUNDG_file, input_folder, output_folder, DRGARE_json):
+#     df = gpd.read_file(SOUNDG_file)
+#     xyzcsv = input_folder + "/xyz.csv"
+#     xyzvrt = input_folder + "/xyz.vrt"
+#     with open(xyzcsv, "w") as f:
+#         f.write('x,y,z\n')
+#     for idx, row in df.iterrows():
+#         for shp in row.geometry:
+#             with open(xyzcsv, "a") as f:
+#                 f.write(str(shp.x) + ',' + str(shp.y) + ',' + str(shp.z) + '\n')
+#     try:
+#
+#     polys = gpd.read_file(DRGARE_json)
+#     # copy GeoDataFrame
+#     # points2 = polys.copy()
+#     # points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
+#     # new GeoDataFrame with same columns
+#     # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
+#     for index, row in polys.iterrows():
+#         for j in list(row['geometry'].exterior.coords):
+#             with open(xyzcsv, "a") as f:
+#                 f.write(str(j[0]) + ',' + str(j[1]) + ',' + str(row['DRVAL1']) + '\n')
+#     with open(xyzvrt, "w") as f:
+#         f.write('''<OGRVRTDataSource>
+#         <OGRVRTLayer name="xyz">
+#             <SrcDataSource relativeToVRT="1">xyz.csv</SrcDataSource>
+#             <LayerSRS>WGS84</LayerSRS>
+#             <GeometryType>wkbPoint</GeometryType>
+#             <GeometryField encoding="PointFromColumns" x="x" y="y" z="z"/>
+#         </OGRVRTLayer>
+#     </OGRVRTDataSource>''')
+#
+#     nn = gdal.Grid(output_folder + "/123invdistnn_xyz.tif", xyzvrt, zfield='z', algorithm="invdistnn")
+#     nn = None
+
+def point_in_polygon(polygon):
+    minx, miny,maxx,maxy = polygon.bounds
+    x = np.random.uniform(minx,maxx,115)
+    y = np.random.uniform(miny,maxy,115)
+    return x,y
+def S57_shape_raster(str_path,json_file_name,tif,output_file_path,output_tif,object,z_value):
+    os.chdir(str_path)
+    polys = gpd.read_file(str_path+"/"+json_file_name+'.json')
+    buffer = polys.copy()
+        # copy GeoDataFrame
+        # points2 = polys.copy()
+        # points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
+        # new GeoDataFrame with same columns
+        # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
+    buffer.geometry = buffer.geometry.apply(lambda x: x.buffer(0.000001))
+    buffer.to_file(object, driver='ESRI Shapefile', schema=None)
+    #os.system('ogr2ogr -f "ESRI Shapefile" '+object+'.shp '+ json_file_name+'.json')
+    fn_ras = tif
+    fn_vec = str_path+'/'+object+'/'+object+'.shp'
+    ras_ds = gdal.Open(fn_ras)
+    vec_ds = osgeo.ogr.Open(fn_vec)
+    lyr = vec_ds.GetLayer()
+    geot = ras_ds.GetGeoTransform()
+    out_net = output_file_path+'/'+output_tif
+    drv_tiff = gdal.GetDriverByName("GTiff")
+    chn_ras_ds = drv_tiff.Create(out_net, ras_ds.RasterXSize, ras_ds.RasterYSize, 1, gdal.GDT_Float32)
+    chn_ras_ds.SetGeoTransform(geot)
+    gdal.RasterizeLayer(chn_ras_ds, [1], lyr, options=['ATTRIBUTE='+z_value])
+    chn_ras_ds.GetRasterBand(1).SetNoDataValue(0.0)
+    chn_ras_ds = None
 
 
+def raster_mask(output_file_path,output_tif):
+    input_tiff = output_file_path+'/'+output_tif
+    output_tiff = output_file_path+'/'+'mask_'+output_tif
+    ds = gdal.Open(input_tiff)
+    b1 = ds.GetRasterBand(1)
+    arr = b1.ReadAsArray()
+    data = np.where(arr > 1, 0, 1)
+    gdal_array.SaveArray(data.astype("float32"), output_tiff, "GTIFF", ds)
+    ds = None
 
-def multitosingle(json_file_path):
-    df = gpd.read_file(json_file_path)
-    #json_data = json.load(file_json)
+def raster_inverse_mask(output_file_path, output_tif):
+    input_tiff = output_file_path + '/' + output_tif
+    output_tiff = output_file_path + '/' + 'mask_inverse_' + output_tif
+    ds = gdal.Open(input_tiff)
+    b1 = ds.GetRasterBand(1)
+    arr = b1.ReadAsArray()
+    data = np.where(arr < 0, 0, 1)
+    gdal_array.SaveArray(data.astype("float32"), output_tiff, "GTIFF", ds)
+    ds = None
+def bathydem_dredge(bathy_dem_path, output_file_path,output_file_path_mask, dredge_raster_path, dredge_raster_name):
+    bathy_dem = bathy_dem_path
+    dredge_raster = dredge_raster_path
+    bathy_dem_dredge = output_file_path + '/' + 'bathy_dem.tif'
+    raster_mask(output_file_path_mask, dredge_raster_name)
+    bathy_dem_ds = gdal.Open(bathy_dem)
+    dredge_raster_ds = gdal.Open(dredge_raster)
+    dredge_raster_mask_ds = gdal.Open(output_file_path_mask + '/' + 'mask_' + dredge_raster_name)
+    b1 = bathy_dem_ds.GetRasterBand(1)
+    b2 = dredge_raster_ds.GetRasterBand(1)
+    b3 = dredge_raster_mask_ds.GetRasterBand(1)
+    arr1 = b1.ReadAsArray()
+    arr2 = b2.ReadAsArray()
+    arr3 = b3.ReadAsArray()
+    data = (arr1*arr3)+(-1*arr2)
+    gdal_array.SaveArray(data.astype("float32"), bathy_dem_dredge, "GTIFF", bathy_dem_ds)
+    print('bathy_dem_with_dredge done!!')
+
+
+def S57_raster(SOUNDG_file, input_folder, output_folder):
+    df = gpd.read_file(SOUNDG_file)
+    xyzcsv = input_folder + "/xyz.csv"
+    xyzvrt = input_folder + "/xyz.vrt"
+    with open(xyzcsv, "w") as f:
+        f.write('x,y,z\n')
     for idx, row in df.iterrows():
         for shp in row.geometry:
-            x.append(shp.z)
+            with open(xyzcsv, "a") as f:
+                f.write(str(shp.x) + ',' + str(shp.y) + ',' + str(shp.z*-1) + '\n')
+    # exists_land = os.path.isfile(LANDAREA_json)
+    # if exists_land:
+    #     polys = gpd.read_file(LANDAREA_json)
+    #     # copy GeoDataFrame
+    #     # points2 = polys.copy()
+    #     # points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
+    #     # new GeoDataFrame with same columns
+    #     # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
+    #     polys["buffered"] = polys.buffer(0.0000001)
+    #     poly_1 = polys.set_geometry("buffered")
+    #     for index, row in poly_1.iterrows():
+    #         for j in list(row['buffered'].exterior.coords):
+    #             with open(xyzcsv, "a") as f:
+    #                 f.write(str(j[0]) + ',' + str(j[1]) + ',' + str(1) + '\n')
+    # else:
+    #     print("no land area file")
+    # exists_land = os.path.isfile(LANDAREA_json)
+    # if exists_land:
+    #     polys = gpd.read_file(LANDAREA_json)
+    #     # copy GeoDataFrame
+    #     # points2 = polys.copy()
+    #     # points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
+    #     # new GeoDataFrame with same columns
+    #     # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
+    #     polys["buffered"] = polys.buffer(0.0000001)
+    #     poly_1 = polys.set_geometry("buffered")
+    #     for index, row in poly_1.iterrows():
+    #         for j in list(row['buffered'].exterior.coords):
+    #             with open(xyzcsv, "a") as f:
+    #                 f.write(str(j[0]) + ',' + str(j[1]) + ',' + str(1) + '\n')
+    # else:
+    #     print("no land area file")
+    with open(xyzvrt, "w") as f:
+        f.write('''<OGRVRTDataSource>
+        <OGRVRTLayer name="xyz">
+            <SrcDataSource relativeToVRT="1">xyz.csv</SrcDataSource>
+            <LayerSRS>WGS84</LayerSRS>
+            <GeometryType>wkbPoint</GeometryType>
+            <GeometryField encoding="PointFromColumns" x="x" y="y" z="z"/>
+        </OGRVRTLayer>
+    </OGRVRTDataSource>''')
+    nn = gdal.Grid(output_folder + "/xyz.tif", xyzvrt, zfield='z', algorithm="invdistnn")
+    nn = None
 
-"""
-#SOUNGIND TEST
-import geopandas as gpd
-df = gpd.read_file(r"E:\UMD_Project\SWIM\GIS\Charts\US5NYCBF\ENC_ROOT\US5NYCBF\US5VA51M.shp")
-for idx, row in df.iterrows():
-    for shp in row.geometry:
-        print(shp.x,shp.y,shp.z)
+# import rasterio
+# dataset = rasterio.open("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/123invdistnn_xyz.tif")
+# dataset.bounds
+# from pyproj import Geod
+# g = Geod(ellps='WGS84')
+# # 2D distance in meters with longitude, latitude of the points
+# azimuth1, azimuth2, distance_2d = g.inv(dataset.bounds[0],dataset.bounds[1], dataset.bounds[2],dataset.bounds[1])
+# print(distance_2d*0.000001186)
+# from pyproj import Geod
+# g = Geod(ellps='WGS84')
+# # 2D distance in meters with longitude, latitude of the points
+# azimuth1, azimuth2, distance_2d = g.inv(dataset.bounds[0],dataset.bounds[1], dataset.bounds[2],dataset.bounds[1])
+# print(distance_2d*0.00000118)
+
+
+# df = gpd.read_file(r"E:\UMD_Project\SWIM\GIS\Charts\US5NYCBG\ENC_ROOT\US5NYCBG\SOUNDG.shp")
+# with open("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.csv", "w") as f:
+#     f.write('x,y,z\n')
+# for idx, row in df.iterrows():
+#     for shp in row.geometry:
+#         with open("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.csv", "a") as f:
+#             f.write(str(shp.x)+','+str(shp.y)+','+str(shp.z)+'\n')
+# polys = gpd.read_file("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/dredgeDRGARE.json")
+# # copy GeoDataFrame
+# #points2 = polys.copy()
+# #points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
+# # new GeoDataFrame with same columns
+# # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
+# for index, row in polys.iterrows():
+#     for j in list(row['geometry'].exterior.coords):
+#         with open("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.csv", "a") as f:
+#             f.write(str(j[0]) + ',' + str(j[1]) + ',' + str(row['DRVAL1']) + '\n')
+# with open("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.vrt", "w") as f:
+#     f.write('''<OGRVRTDataSource>
+#     <OGRVRTLayer name="xyz">
+#         <SrcDataSource relativeToVRT="1">E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.csv</SrcDataSource>
+#         <LayerSRS>WGS84</LayerSRS>
+#         <GeometryType>wkbPoint</GeometryType>
+#         <GeometryField encoding="PointFromColumns" x="x" y="y" z="z"/>
+#     </OGRVRTLayer>
+# </OGRVRTDataSource>''')
+#
+# nn = gdal.Grid("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/invdistnn_xyz.tif", "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.vrt", zfield='z' , algorithm="invdistnn")
+# nn = None
 
 
 
 
+#CONVERT SOUNDINGS TO RASTER!!! end up with a + need to multiply by -1
 
-files = glob.glob(output_path + '*.json')
-files_there = []
-for fl in files:
-    f = open(fl)
-    json_data = json.load(f)
-    files_there.append(fl)
+#need to cookie cutter out the Dredge area turn dredge area intoa  raster than add that into the raster
+# from osgeo import gdal
+# import geopandas as gpd
+# import geopandas as gpd
+# from shapely.geometry import Point
+# from shapely.geometry import MultiPoint
+# df = gpd.read_file(r"E:\UMD_Project\SWIM\GIS\Charts\US5NYCBG\ENC_ROOT\US5NYCBG\US5NYCBG.shp")
+# with open("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBF/ENC_ROOT/US5NYCBF/xyz.csv", "w") as f:
+#     f.write('x,y,z\n')
+# for idx, row in df.iterrows():
+#     for shp in row.geometry:
+#         with open("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.csv", "a") as f:
+#             f.write(str(shp.x)+','+str(shp.y)+','+str(shp.z)+'\n')
+# polys = gpd.read_file("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/dredgeDRGARE.json")
+# # copy GeoDataFrame
+# points2 = polys.copy()
+# points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
+# # new GeoDataFrame with same columns
+# # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
+# for index, row in polys.iterrows():
+#     for j in list(row['geometry'].exterior.coords):
+#         with open("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.csv", "a") as f:
+#             f.write(str(j[0]) + ',' + str(j[1]) + ',' + str(row['DRVAL1']) + '\n')
+# with open("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.vrt", "w") as f:
+#     f.write('''<OGRVRTDataSource>
+#     <OGRVRTLayer name="xyz">
+#         <SrcDataSource relativeToVRT="1">E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.csv</SrcDataSource>
+#         <LayerSRS>WGS84</LayerSRS>
+#         <GeometryType>wkbPoint</GeometryType>
+#         <GeometryField encoding="PointFromColumns" x="x" y="y" z="z"/>
+#     </OGRVRTLayer>
+# </OGRVRTDataSource>''')
+#
+# nn = gdal.Grid("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/linear_xyz.tif", "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/xyz.vrt", zfield='z' , algorithm="linear")
+# nn = None
 
 
-file = files_there[0]
-f1 = json.load(open(os.path.join(file)))
-for name in files_there:
-    f2 = json.load(open(os.path.join(name)))
-    f1['features'].extend(f2['features'])
 
-json.dump(f1, open(os.path.join(output_path + object_types + "allcharts"+ ".json"), 'w'))
 
-for fl in files:
-    f = open(fl)
-    json_data = json.load(f)
-    files_there.append(fl)
-print(files_there)
-listbuoy = []
-for file in files_there:
-    data = json.load(open(file))
-    obj_json[obj] = data
-    print(file,data)
-    for obj_types in objects:
-        print(obj_types)
-        for obj_list in obj_json:
-            print(obj_list)
-            if obj_list == obj_types:
-                for item in obj_json[obj_types]['features']:
-                    print(item['geometry']["coordinates"])
-                    listbuoy.append(item['geometry']["coordinates"])
-            else:
-                print('done')
-
-for pos, item in enumerate(listbuoy):
-    if (item in listbuoy):
-        # print(listbuoy.index(x))
-        print(item)
-        f = open("buoy.ini", "w")
-        count = 0
-        for item in obj_json['BOYLAT']['features']:
-            x = str(item['geometry']['coordinates'][0])  # lat
-            print(x)
-            y = str(item['geometry']['coordinates'][1])  # long
-            f.write('Type(%s)="port"\nLAT(%s)=%s\nLONG(%s)=%s\n\n' % (
-                str(count), str(count), str(y), str(count), str(x)))
-            count += 1
-        f.close()
-        f = open("buoy.ini", "r")
-        f.read()
-        f.close()
-        line = "Number={}\n".format(count)
-        prepend_line("buoy.ini", line)
-        
-        
-        
-#COLORS FOR LIGHTS
-import matplotlib
-ex for Violet
-red = matplotlib.colors.to_rgb(colour_dic["['10']"])[0]*255
-green = matplotlib.colors.to_rgb(colour_dic["['10']"])[1]*255
-blue = matplotlib.colors.to_rgb(colour_dic["['10']"])[2]*255
-"""
+# #SOUNGIND TEST
+# import geopandas as gpd
+# df = gpd.read_file(r"E:\UMD_Project\SWIM\GIS\Charts\US5NYCBF\ENC_ROOT\US5NYCBF\US5VA51M.shp")
+# for idx, row in df.iterrows():
+#     for shp in row.geometry:
+#         print(shp.x,shp.y,shp.z)
+#
+# files = glob.glob(output_path + '*.json')
+# files_there = []
+# for fl in files:
+#     f = open(fl)
+#     json_data = json.load(f)
+#     files_there.append(fl)
+#
+#
+# file = files_there[0]
+# f1 = json.load(open(os.path.join(file)))
+# for name in files_there:
+#     f2 = json.load(open(os.path.join(name)))
+#     f1['features'].extend(f2['features'])
+#
+# json.dump(f1, open(os.path.join(output_path + object_types + "allcharts"+ ".json"), 'w'))
+#
+# for fl in files:
+#     f = open(fl)
+#     json_data = json.load(f)
+#     files_there.append(fl)
+# print(files_there)
+# listbuoy = []
+# for file in files_there:
+#     data = json.load(open(file))
+#     obj_json[obj] = data
+#     print(file,data)
+#     for obj_types in objects:
+#         print(obj_types)
+#         for obj_list in obj_json:
+#             print(obj_list)
+#             if obj_list == obj_types:
+#                 for item in obj_json[obj_types]['features']:
+#                     print(item['geometry']["coordinates"])
+#                     listbuoy.append(item['geometry']["coordinates"])
+#             else:
+#                 print('done')
+#
+# for pos, item in enumerate(listbuoy):
+#     if (item in listbuoy):
+#         # print(listbuoy.index(x))
+#         print(item)
+#         f = open("buoy.ini", "w")
+#         count = 0
+#         for item in obj_json['BOYLAT']['features']:
+#             x = str(item['geometry']['coordinates'][0])  # lat
+#             print(x)
+#             y = str(item['geometry']['coordinates'][1])  # long
+#             f.write('Type(%s)="port"\nLAT(%s)=%s\nLONG(%s)=%s\n\n' % (
+#                 str(count), str(count), str(y), str(count), str(x)))
+#             count += 1
+#         f.close()
+#         f = open("buoy.ini", "r")
+#         f.read()
+#         f.close()
+#         line = "Number={}\n".format(count)
+#         prepend_line("buoy.ini", line)
+#
+#
+#
+# #COLORS FOR LIGHTS
+# import matplotlib
+# ex for Violet
+# red = matplotlib.colors.to_rgb(colour_dic["['10']"])[0]*255
+# green = matplotlib.colors.to_rgb(colour_dic["['10']"])[1]*255
+# blue = matplotlib.colors.to_rgb(colour_dic["['10']"])[2]*255
+#
