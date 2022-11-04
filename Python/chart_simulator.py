@@ -4,9 +4,9 @@ import S57_converter as sc
 from PIL import Image
 import rasterio
 from pyproj import Geod
-from osgeo import gdal
-from osgeo import gdal
+from osgeo import gdal, gdal_array
 import rasterio
+
 
 
 # giving directory name
@@ -165,6 +165,8 @@ output_file_path_mask = "E:/UMD_Project/SWIM/GIS/json/dredge/"
 sc.bathydem_dredge(bathy_dem_path,output_file_path,output_file_path_mask, dredge_raster_path, dredge_raster_name)
 
 topo_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM\topo_dem.tif"
+topo_dem_re = r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM\topo_dem_re.tif"
+topo_dem_re_bound = r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM\topo_dem_re_bound.tif"
 topobathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\TopoBathy_DEM\python_topobathy_dem.tif"
 bathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz\bathy_dem.tif"
 output_file_path = r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM"
@@ -173,27 +175,65 @@ land_mask = sc.raster_mask(output_file_path,output_tif)
 land_mask_inverse = sc.raster_inverse_mask(output_file_path,output_tif)
 land_mask = r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM\mask_topo_dem.tif"
 land_mask_inverse =r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM\mask_inverse_topo_dem.tif"
+land_mask_re = r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM\mask_topo_dem_re.tif"
 land_mask_inverse_re =r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM\mask_inverse_topo_dem_re.tif"
 
-land_mask = r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM\mask_topo_dem.tif"
-land_mask_re = r"E:\UMD_Project\SWIM\GIS\Rasters\Topo_DEM\mask_topo_dem_re.tif"
 str = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz/"
-topobathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz\bathy_dem.tif"
-topobathy_dem_out = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz\bathy_dem.tif"
+#topobathy_dem_out = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz\topobathy_dem.tif"
 
 bathy_dem_ds = gdal.Open(bathy_dem)
-topo_dem_ds = gdal.Open(topo_dem)
-dataset = rasterio.open(topobathy_dem)
+dataset = rasterio.open(bathy_dem)
 bbox = dataset.bounds
 # # upper_left_x, upper_left_y, lower_right_x,lower_right_y =
 window = (dataset.bounds[0],dataset.bounds[3],dataset.bounds[2],dataset.bounds[3])
+
+
+
+gdal.Warp(topo_dem_re,topo_dem,dstSRS='EPSG:4326')
 gdal.Warp(land_mask_re,land_mask,dstSRS='EPSG:4326')
 gdal.Warp(land_mask_inverse_re,land_mask_inverse,dstSRS='EPSG:4326')
-gdal.Translate(str+'land_mask_re.tif', land_mask_re, projWin = bbox)
-gdal.Translate(str+'land_mask_inv_re.tif', land_mask_inv_re, projWin = bbox)
+gdal.Translate(str+'land_mask_re_bound.tif', land_mask_re, projWin = bbox)
+gdal.Translate(str+'mask_inverse_topo_dem_re_bound.tif', land_mask_inverse_re, projWin = bbox)
+gdal.Translate(topo_dem_re_bound, topo_dem_re, projWin = bbox)
 
-land_mask_ds = gdal.Open(str+'land_mask_re.tif')
-land_mask_inverse_ds = gdal.Open(str+'land_mask_inv_re.tif')
+# open reference file and get resolution
+referenceFile = bathy_dem
+reference = gdal.Open(referenceFile, 0)  # this opens the file in only reading mode
+referenceTrans = reference.GetGeoTransform()
+x_res = referenceTrans[1]
+y_res = -referenceTrans[5]  # make sure this value is positive
+print(y_res)
+
+# specify input and output filenames
+inputFile = str+'land_mask_re_bound.tif'
+outputFile = str+'land_mask_re_bound_A.tif'
+
+# call gdal Warp
+kwargs = {"format": "GTiff", "xRes": x_res, "yRes": y_res}
+ds = gdal.Warp(outputFile, inputFile, **kwargs)
+
+
+# specify input and output filenames
+inputFile = str+'mask_inverse_topo_dem_re_bound.tif'
+outputFile = str+'mask_inverse_topo_dem_re_bound_A.tif'
+
+# call gdal Warp
+kwargs = {"format": "GTiff", "xRes": x_res, "yRes": y_res}
+ds = gdal.Warp(outputFile, inputFile, **kwargs)
+
+# specify input and output filenames
+inputFile = topo_dem_re_bound
+outputFile = str+'topo_dem_A.tif'
+
+# call gdal Warp
+kwargs = {"format": "GTiff", "xRes": x_res, "yRes": y_res}
+ds = gdal.Warp(outputFile, inputFile, **kwargs)
+
+
+
+topo_dem_ds = gdal.Open(str+'topo_dem_A.tif')
+land_mask_ds = gdal.Open(str+'land_mask_re_bound_A.tif')
+land_mask_inverse_ds = gdal.Open(str+'mask_inverse_topo_dem_re_bound_A.tif')
 bdem = bathy_dem_ds.GetRasterBand(1)
 tdem = topo_dem_ds.GetRasterBand(1)
 lm = land_mask_ds.GetRasterBand(1)
@@ -202,7 +242,7 @@ bdemarr = bdem.ReadAsArray()
 tdemarr = tdem.ReadAsArray()
 lmarr = lm.ReadAsArray()
 lmiarr = lmi.ReadAsArray()
-data = (lmarr * tdemarr) + (lmiarr * bdemarr)
+data = (lmiarr * tdemarr) + (lmarr * bdemarr)
 gdal_array.SaveArray(data.astype("float32"), topobathy_dem, "GTIFF", bathy_dem_ds)
 print('topobathy_dem_with_dredge done!!')
 #(Land Mask X Topo DEM) + (Inverse Land Mask X Bathy DEM) = TopoBathy DEM.
