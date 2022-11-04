@@ -43,20 +43,20 @@ except NameError:
 
 
 
-# output_path_buoy = "E:/UMD_Project/SWIM/GIS/json/buoy/temp/"
-# objects_buoy = ['BOYCAR', 'BOYINB', 'BOYISD', 'BOYLAT', 'BOYSAW', 'BOYSPP']
-# object_types_buoy = "Buoy"
-# ini_output = "E:/UMD_Project/SWIM/GIS/ini/"
-# combined_json_outpath_buoy = "E:/UMD_Project/SWIM/GIS/json/buoy/"
-# # iterating over directory and subdirectory to get desired result
-# for path, dirc, files in os.walk(folderdir):
-#     for name in files:
-#         if name.endswith(ext):
-#             chart = name[:-4]
-#             str_path = path
-#             sc.S57_to_json(str_path, output_path_buoy, chart, objects_buoy, object_types_buoy)
-# json_file_path_buoy = sc.combo_json(output_path_buoy,combined_json_outpath_buoy,object_types_buoy)
-# sc.json_to_ini_buoy(ini_output,json_file_path_buoy)
+output_path_buoy = "E:/UMD_Project/SWIM/GIS/json/buoy/temp/"
+objects_buoy = ['BOYCAR', 'BOYINB', 'BOYISD', 'BOYLAT', 'BOYSAW', 'BOYSPP']
+object_types_buoy = "Buoy"
+ini_output = "E:/UMD_Project/SWIM/GIS/ini/"
+combined_json_outpath_buoy = "E:/UMD_Project/SWIM/GIS/json/buoy/"
+# iterating over directory and subdirectory to get desired result
+for path, dirc, files in os.walk(folderdir):
+    for name in files:
+        if name.endswith(ext):
+            chart = name[:-4]
+            str_path = path
+            sc.S57_to_json(str_path, output_path_buoy, chart, objects_buoy, object_types_buoy)
+json_file_path_buoy = sc.combo_json(output_path_buoy,combined_json_outpath_buoy,object_types_buoy)
+sc.json_to_ini_buoy(ini_output,json_file_path_buoy)
 
 output_path_d = "E:/UMD_Project/SWIM/GIS/json/dredge/temp/"
 objects_d = ['DRGARE']
@@ -240,8 +240,11 @@ lm = land_mask_ds.GetRasterBand(1)
 lmi = land_mask_inverse_ds.GetRasterBand(1)
 bdemarr = bdem.ReadAsArray()
 tdemarr = tdem.ReadAsArray()
+tdemarr = tdemarr[::-1,:]
 lmarr = lm.ReadAsArray()
+lmarr = lmarr[::-1,:]
 lmiarr = lmi.ReadAsArray()
+lmiarr = lmarr[::-1,:]
 data = (lmiarr * tdemarr) + (lmarr * bdemarr)
 gdal_array.SaveArray(data.astype("float32"), topobathy_dem, "GTIFF", bathy_dem_ds)
 print('topobathy_dem_with_dredge done!!')
