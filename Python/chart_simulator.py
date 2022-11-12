@@ -6,7 +6,7 @@ import rasterio
 from pyproj import Geod
 from osgeo import gdal, gdal_array
 import rasterio
-
+import numpy
 
 
 # giving directory name
@@ -14,7 +14,7 @@ folderdir = 'E:/UMD_Project/SWIM/GIS/Charts/'
 # giving file extension
 ext = ('.000')
 height_eye = 21 #set height of the users eye in Meters
-topobathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\TopoBathy_DEM\small_test.tif"
+#topobathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\TopoBathy_DEM\small_test.tif"
 xyz_file = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz"
 xyz_csv = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz"
 # output = r"E:\UMD_Project\SWIM\GIS\Rasters\TopoBathy_DEM"
@@ -119,8 +119,6 @@ json = "sound_combined.json"
 shp = combined_json_outpath_sound+"/sound.shp"
 sc.json_shp(json_file_path,shp)
 
-
-
 DRGARE_json = combined_json_outpath_d+object_types_d+"_combined.json"
 LANDAREA_json = combined_json_outpath_land+object_types_land+"_combined.json"
 
@@ -128,7 +126,7 @@ print("DredgeJSON: "+ json_file_path_d)
 #"E:\UMD_Project\SWIM\GIS\json\dredge\dredge_combined.json"
 sc.S57_raster(shp, output_path_sound, xyz_file+"/")
 
-topobathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\TopoBathy_DEM\sound_NYC1.tif"
+#topobathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\TopoBathy_DEM\sound_NYC1.tif"
 
 
 
@@ -251,14 +249,21 @@ print('topobathy_dem_with_dredge done!!')
 #(Land Mask X Topo DEM) + (Inverse Land Mask X Bathy DEM) = TopoBathy DEM.
 
 
-topobathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz\bathy_demrgb.tif"
 
+topobathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\TopoBathy_DEM\python_topobathy_dem.tif"
+output = r"E:\UMD_Project\SWIM\GIS\ini"
 def DEM_ini(topobathy_dem, output):
+    #image = Image.open(topobathy_dem)
     image = Image.open(topobathy_dem)
-    image.save(output + "/height.png")
-    image.show()
-    print("Width: ", image.width)
-    print("Height: ", image.height)
+    array_p = numpy.asarray(image)
+    array_p = array_p[::-1,:]
+    new_p = Image.fromarray(array_p)
+    if new_p.mode != 'RGB':
+        new_p = new_p.convert('RGB')
+    new_p.save(output + "/height.png")
+    #new_p.show()
+    print("Width: ", new_p.width)
+    print("Height: ", new_p.height)
     dataset = rasterio.open(topobathy_dem)
     dataset.bounds
     g = Geod(ellps='WGS84')
@@ -275,6 +280,11 @@ def DEM_ini(topobathy_dem, output):
     sn = distance_sn * 0.0000118
     sw_point = dataset.bounds[0], dataset.bounds[1]
     print(dataset.bounds[0], dataset.bounds[1])
+    ds = gdal.Open(topobathy_dem)# open raster file
+    b1 = ds.GetRasterBand(1)# get data into varialbe bs so we can actually look at it.
+    arr = b1.ReadAsArray()
+    max_value = np.amax(arr)
+    min_value = np.amin(arr)
     with open(output + "/terrain.ini", "w") as f:
         f.write('''
 Number=1
@@ -287,11 +297,11 @@ TerrainLong(1)=%.4f
 TerrainLat(1)=%.4f
 TerrainLongExtent(1)=%.3f
 TerrainLatExtent(1)=%.3f
-TerrainMaxHeight(1)=113
-SeaMaxDepth(1)=31.5
-TerrainHeightMapSize(1)=%.3f
+TerrainMaxHeight(1)=%.1f
+SeaMaxDepth(1)=%.1f
+TerrainHeightMapSize(1)=%.0f
 
-        ''' % (sw_point[0], sw_point[1], we, sn, image.height))
+        ''' % (sw_point[0], sw_point[1], we, sn,abs(max_value),abs(min_value),image.height))
     # open raster and choose band to find min, max
     raster = topobathy_dem
     gtif = gdal.Open(raster)
@@ -302,5 +312,5 @@ TerrainHeightMapSize(1)=%.3f
     print("[ STATS ] =  Minimum=%.3f, Maximum=%.3f, Mean=%.3f, StdDev=%.3f" % (
         stats[0], stats[1], stats[2], stats[3]))
 
-DEM_ini(topobathy_dem, folderdir)
+DEM_ini(topobathy_dem, output)
 print("done")

@@ -9,13 +9,11 @@ from S57_attribute_dic import *
 import re
 import matplotlib
 import math
-#import geopandas as gpd
 from osgeo import gdal, gdal_array
 import geopandas as gpd
 import geopandas as gpd
 from shapely.geometry import Point
 from shapely.geometry import MultiPoint
-import os
 import numpy as np
 
 def prepend_line(file_name, line):
@@ -270,63 +268,7 @@ def json_to_ini_light(ini_output,json_file_path,height_eye):
     else:
         return(None)
 
-# json_file_path = gpd.read_file("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBF/ENC_ROOT/US5NYCBF/soundSOUNDG.json")
-#
-#
-#
-# def multitosingle(json_file_path):
-#     df = gpd.read_file(json_file_path)
-#     json_data = json.load(file_json)
-#     for idx, row in df.iterrows():
-#         for shp in row.geometry:
-#             x.append(shp.z)
 
-# from osgeo import gdal
-# import geopandas as gpd
-# import geopandas as gpd
-# from shapely.geometry import Point
-# from shapely.geometry import MultiPoint
-# import os
-# SOUNDG_file = r"E:\UMD_Project\SWIM\GIS\Charts\US5NYCBG\ENC_ROOT\US5NYCBG\SOUNDG.shp"
-# DRGARE_json = "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/dredgeDRGARE.json"
-# input_folder = "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/"
-# output_folder = "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/"
-#
-#
-# def S57_raster(SOUNDG_file, input_folder, output_folder, DRGARE_json):
-#     df = gpd.read_file(SOUNDG_file)
-#     xyzcsv = input_folder + "/xyz.csv"
-#     xyzvrt = input_folder + "/xyz.vrt"
-#     with open(xyzcsv, "w") as f:
-#         f.write('x,y,z\n')
-#     for idx, row in df.iterrows():
-#         for shp in row.geometry:
-#             with open(xyzcsv, "a") as f:
-#                 f.write(str(shp.x) + ',' + str(shp.y) + ',' + str(shp.z) + '\n')
-#     try:
-#
-#     polys = gpd.read_file(DRGARE_json)
-#     # copy GeoDataFrame
-#     # points2 = polys.copy()
-#     # points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
-#     # new GeoDataFrame with same columns
-#     # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
-#     for index, row in polys.iterrows():
-#         for j in list(row['geometry'].exterior.coords):
-#             with open(xyzcsv, "a") as f:
-#                 f.write(str(j[0]) + ',' + str(j[1]) + ',' + str(row['DRVAL1']) + '\n')
-#     with open(xyzvrt, "w") as f:
-#         f.write('''<OGRVRTDataSource>
-#         <OGRVRTLayer name="xyz">
-#             <SrcDataSource relativeToVRT="1">xyz.csv</SrcDataSource>
-#             <LayerSRS>WGS84</LayerSRS>
-#             <GeometryType>wkbPoint</GeometryType>
-#             <GeometryField encoding="PointFromColumns" x="x" y="y" z="z"/>
-#         </OGRVRTLayer>
-#     </OGRVRTDataSource>''')
-#
-#     nn = gdal.Grid(output_folder + "/123invdistnn_xyz.tif", xyzvrt, zfield='z', algorithm="invdistnn")
-#     nn = None
 
 def point_in_polygon(polygon):
     minx, miny,maxx,maxy = polygon.bounds
@@ -334,6 +276,7 @@ def point_in_polygon(polygon):
     y = np.random.uniform(miny,maxy,115)
     return x,y
 def S57_shape_raster(str_path,json_file_name,tif,output_file_path,output_tif,object,z_value):
+    #Converts the S-57 Objects that are Polygons to a Raster. This is the Dredged area and the Land area
     os.chdir(str_path)
     polys = gpd.read_file(str_path+"/"+json_file_name+'.json')
     buffer = polys.copy()
@@ -393,12 +336,16 @@ def bathydem_dredge(bathy_dem_path, output_file_path,output_file_path_mask, dred
     arr1 = b1.ReadAsArray()
     arr2 = b2.ReadAsArray()
     arr3 = b3.ReadAsArray()
-    data = (arr1*arr3)+(-1*arr2)
+    data = (arr1*arr3)+(-1*arr2) #(sounding raster * dredge raster mask)+(inverse dredge raster)
     gdal_array.SaveArray(data.astype("float32"), bathy_dem_dredge, "GTIFF", bathy_dem_ds)
     print('bathy_dem_with_dredge done!!')
 
 
 def S57_raster(SOUNDG_file, input_folder, output_folder):
+    #convert the point files in a S-57 to a raster.
+    # First convert toa  CSV
+    # CSV to raster
+    #this is for the Sounding files, but could be used for danger objects or shallow soundings
     df = gpd.read_file(SOUNDG_file)
     xyzcsv = input_folder + "/xyz.csv"
     xyzvrt = input_folder + "/xyz.vrt"
@@ -408,38 +355,6 @@ def S57_raster(SOUNDG_file, input_folder, output_folder):
         for shp in row.geometry:
             with open(xyzcsv, "a") as f:
                 f.write(str(shp.x) + ',' + str(shp.y) + ',' + str(shp.z*-1) + '\n')
-    # exists_land = os.path.isfile(LANDAREA_json)
-    # if exists_land:
-    #     polys = gpd.read_file(LANDAREA_json)
-    #     # copy GeoDataFrame
-    #     # points2 = polys.copy()
-    #     # points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
-    #     # new GeoDataFrame with same columns
-    #     # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
-    #     polys["buffered"] = polys.buffer(0.0000001)
-    #     poly_1 = polys.set_geometry("buffered")
-    #     for index, row in poly_1.iterrows():
-    #         for j in list(row['buffered'].exterior.coords):
-    #             with open(xyzcsv, "a") as f:
-    #                 f.write(str(j[0]) + ',' + str(j[1]) + ',' + str(1) + '\n')
-    # else:
-    #     print("no land area file")
-    # exists_land = os.path.isfile(LANDAREA_json)
-    # if exists_land:
-    #     polys = gpd.read_file(LANDAREA_json)
-    #     # copy GeoDataFrame
-    #     # points2 = polys.copy()
-    #     # points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
-    #     # new GeoDataFrame with same columns
-    #     # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
-    #     polys["buffered"] = polys.buffer(0.0000001)
-    #     poly_1 = polys.set_geometry("buffered")
-    #     for index, row in poly_1.iterrows():
-    #         for j in list(row['buffered'].exterior.coords):
-    #             with open(xyzcsv, "a") as f:
-    #                 f.write(str(j[0]) + ',' + str(j[1]) + ',' + str(1) + '\n')
-    # else:
-    #     print("no land area file")
     with open(xyzvrt, "w") as f:
         f.write('''<OGRVRTDataSource>
         <OGRVRTLayer name="xyz">
@@ -614,3 +529,60 @@ def S57_raster(SOUNDG_file, input_folder, output_folder):
 # green = matplotlib.colors.to_rgb(colour_dic["['10']"])[1]*255
 # blue = matplotlib.colors.to_rgb(colour_dic["['10']"])[2]*255
 #
+# json_file_path = gpd.read_file("E:/UMD_Project/SWIM/GIS/Charts/US5NYCBF/ENC_ROOT/US5NYCBF/soundSOUNDG.json")
+#
+#
+#
+# def multitosingle(json_file_path):
+#     df = gpd.read_file(json_file_path)
+#     json_data = json.load(file_json)
+#     for idx, row in df.iterrows():
+#         for shp in row.geometry:
+#             x.append(shp.z)
+
+# from osgeo import gdal
+# import geopandas as gpd
+# import geopandas as gpd
+# from shapely.geometry import Point
+# from shapely.geometry import MultiPoint
+# import os
+# SOUNDG_file = r"E:\UMD_Project\SWIM\GIS\Charts\US5NYCBG\ENC_ROOT\US5NYCBG\SOUNDG.shp"
+# DRGARE_json = "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/dredgeDRGARE.json"
+# input_folder = "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/"
+# output_folder = "E:/UMD_Project/SWIM/GIS/Charts/US5NYCBG/ENC_ROOT/US5NYCBG/"
+#
+#
+# def S57_raster(SOUNDG_file, input_folder, output_folder, DRGARE_json):
+#     df = gpd.read_file(SOUNDG_file)
+#     xyzcsv = input_folder + "/xyz.csv"
+#     xyzvrt = input_folder + "/xyz.vrt"
+#     with open(xyzcsv, "w") as f:
+#         f.write('x,y,z\n')
+#     for idx, row in df.iterrows():
+#         for shp in row.geometry:
+#             with open(xyzcsv, "a") as f:
+#                 f.write(str(shp.x) + ',' + str(shp.y) + ',' + str(shp.z) + '\n')
+#     try:
+#
+#     polys = gpd.read_file(DRGARE_json)
+#     # copy GeoDataFrame
+#     # points2 = polys.copy()
+#     # points2.geometry = points2.geometry.apply(lambda x: MultiPoint(list(x.exterior.coords)))
+#     # new GeoDataFrame with same columns
+#     # Extraction of the polygon nodes and attributes values from polys and integration into the new GeoDataFrame
+#     for index, row in polys.iterrows():
+#         for j in list(row['geometry'].exterior.coords):
+#             with open(xyzcsv, "a") as f:
+#                 f.write(str(j[0]) + ',' + str(j[1]) + ',' + str(row['DRVAL1']) + '\n')
+#     with open(xyzvrt, "w") as f:
+#         f.write('''<OGRVRTDataSource>
+#         <OGRVRTLayer name="xyz">
+#             <SrcDataSource relativeToVRT="1">xyz.csv</SrcDataSource>
+#             <LayerSRS>WGS84</LayerSRS>
+#             <GeometryType>wkbPoint</GeometryType>
+#             <GeometryField encoding="PointFromColumns" x="x" y="y" z="z"/>
+#         </OGRVRTLayer>
+#     </OGRVRTDataSource>''')
+#
+#     nn = gdal.Grid(output_folder + "/123invdistnn_xyz.tif", xyzvrt, zfield='z', algorithm="invdistnn")
+#     nn = None
