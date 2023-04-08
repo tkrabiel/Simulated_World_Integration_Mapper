@@ -3,6 +3,27 @@ boyshp_dic = {'1':'nun','2':'can','3':'spherical','4':'pillar','5':'spar','6':'t
 catcam_dic = {'1':'north','2':'east','3':'south','4':'west'}#'cat#':'direction'
 bcnshp_dic = {'1':'pole','2':'withy', '3':'tower','4':'lattice','5':'pile','6':'cairn','7':'buoyant'}
 
+colour_lookup = ["white", "black", "red", "green", "blue", "yellow", "grey", "brown", "amber", "violet", "orange",
+                 "magenta", "pink"]
+
+
+def colour_builder(list):  # where the list is something like ["1", "12", "3"]
+    str_builder = ""
+    i = 0
+
+    for number in list:
+        if number.isdigit():
+            colour = colour_lookup[int(number) - 1]
+            str_builder += colour
+            i += 1
+            if i == len(list):
+                return str_builder
+            str_builder += "_"
+        else:
+            print("Error parsing input: " + number + " should be able to be cast to int.")
+            return
+
+    return str_builder
 
 #x<0.2 = Nothing 0.2>x>0.3 = L  0.6>x>0.3 = LL 0.6>x>0.8 = LLL 0.8>x>=1 = LLLL
 #could do a count? formula for 1.3/0.25 = round(3.2) LLLLL 1.7/0.25 = round(6.8) DDDDDDDD

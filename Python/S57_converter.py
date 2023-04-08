@@ -16,6 +16,28 @@ from shapely.geometry import Point
 from shapely.geometry import MultiPoint
 import numpy as np
 
+colour_lookup = ["white", "black", "red", "green", "blue", "yellow", "grey", "brown", "amber", "violet", "orange",
+                 "magenta", "pink"]
+
+
+def colour_builder(list):  # where the list is something like ["1", "12", "3"]
+    str_builder = ""
+    i = 0
+
+    for number in list:
+        if number.isdigit():
+            colour = colour_lookup[int(number) - 1]
+            str_builder += colour
+            i += 1
+            if i == len(list):
+                return str_builder
+            str_builder += "_"
+        else:
+            print("Error parsing input: " + number + " should be able to be cast to int.")
+            return
+
+    return str_builder
+
 def prepend_line(file_name, line):
     """ Insert given string as a new line at the beginning of a file """
     # define name of temporary dummy file
@@ -116,9 +138,9 @@ def json_to_ini_bcn(ini_output,json_file_path):
     count = 0
     for index, types in enumerate(json_data['features']):
         key_bcnshp = str(json_data['features'][index]['properties']["BCNSHP"])
-        key_colour = str(json_data['features'][index]['properties']["COLOUR"])
+        key_colour = (json_data['features'][index]['properties']["COLOUR"])
         bcnshp = bcnshp_dic[key_bcnshp]
-        colour = colour_dic[key_colour]
+        colour = colour_builder(key_colour)
         bcn_type = bcnshp + "_" + colour
         x = json_data['features'][index]['geometry']['coordinates'][0]
         y = json_data['features'][index]['geometry']['coordinates'][1]
@@ -159,9 +181,10 @@ def json_to_ini_buoy(ini_output,json_file_path):
             # boyshp = str(json_data['features'][index]['properties']["BOYSHP"])
             # colour = str(json_data['features'][index]['properties']["COLOUR"])
             key_boyshp = str(json_data['features'][index]['properties']["BOYSHP"])
-            key_colour = str(json_data['features'][index]['properties']["COLOUR"])
+            key_colour = (json_data['features'][index]['properties']["COLOUR"])
             boyshp = boyshp_dic[key_boyshp]
-            colour = colour_dic[key_colour]
+            #colour = colour_dic[key_colour]
+            colour = colour_builder(key_colour)
             buoy_type = boyshp + "_" + colour
             x = json_data['features'][index]['geometry']['coordinates'][0]
             y = json_data['features'][index]['geometry']['coordinates'][1]
@@ -253,6 +276,7 @@ def json_to_ini_light(ini_output,json_file_path,height_eye):
         count = 0
         for index, types in enumerate(json_data['features']):
             key_colour = str(json_data['features'][index]['properties']["COLOUR"])
+            #colour = colour_builder(key_colour)
             colour = colour_dic[key_colour]
             try:#if there are mulitple colors for the same light catch error as vallueerror
                 #make light into number of colors in the light ex: red_green is now 1)red and 2)green in same spot with
