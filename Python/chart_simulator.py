@@ -10,22 +10,26 @@ import numpy
 
 
 # giving directory name
-folderdir = 'E:/UMD_Project/SWIM/GIS/Charts/'
+#folderdir = 'E:/UMD_Project/SWIM/GIS/Charts/'
+folderdir = 'C:/Users/Taylor.A.Krabiel/Downloads/ketchikan/'
 # giving file extension
 ext = ('.000')
 height_eye = 21 #set height of the users eye in Meters
 #topobathy_dem = r"E:\UMD_Project\SWIM\GIS\Rasters\TopoBathy_DEM\small_test.tif"
+#xyz_file = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz"
+#xyz_csv = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz"
 xyz_file = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz"
 xyz_csv = r"E:\UMD_Project\SWIM\GIS\Rasters\xyz"
 # output = r"E:\UMD_Project\SWIM\GIS\Rasters\TopoBathy_DEM"
 
 
 
-output_path_light = "E:/UMD_Project/SWIM/GIS/json/lights/temp/"
+output_path_light = folderdir+"json/lights/temp/"
 objects_light = ['LIGHTS']
 object_types_light = "Lights"
-ini_output = "E:/UMD_Project/SWIM/GIS/ini/"
-combined_json_outpath_light = "E:/UMD_Project/SWIM/GIS/json/lights/"
+#ini_output = "E:/UMD_Project/SWIM/GIS/ini/"
+ini_output = folderdir +"ini/"
+combined_json_outpath_light = folderdir +"json/lights/"
 # iterating over directory and subdirectory to get desired result
 for path, dirc, files in os.walk(folderdir):
     for name in files:
@@ -43,11 +47,11 @@ except NameError:
 
 
 
-output_path_buoy = "E:/UMD_Project/SWIM/GIS/json/buoy/temp/"
+output_path_buoy = folderdir +"json/buoy/temp/"
 objects_buoy = ['BOYCAR', 'BOYINB', 'BOYISD', 'BOYLAT', 'BOYSAW', 'BOYSPP']
 object_types_buoy = "Buoy"
-ini_output = "E:/UMD_Project/SWIM/GIS/ini/"
-combined_json_outpath_buoy = "E:/UMD_Project/SWIM/GIS/json/buoy/"
+ini_output = folderdir +"ini/"
+combined_json_outpath_buoy = folderdir +"buoy/"
 # iterating over directory and subdirectory to get desired result
 for path, dirc, files in os.walk(folderdir):
     for name in files:
@@ -58,10 +62,10 @@ for path, dirc, files in os.walk(folderdir):
 json_file_path_buoy = sc.combo_json(output_path_buoy,combined_json_outpath_buoy,object_types_buoy)
 sc.json_to_ini_buoy(ini_output,json_file_path_buoy)
 
-output_path_d = "E:/UMD_Project/SWIM/GIS/json/dredge/temp/"
+output_path_d = folderdir + "json/dredge/temp/"
 objects_d = ['DRGARE']
 object_types_d = "dredge"
-combined_json_outpath_d = "E:/UMD_Project/SWIM/GIS/json/dredge/"
+combined_json_outpath_d = folderdir + "json/dredge/"
 # iterating over directory and subdirectory to get desired result
 for path, dirc, files in os.walk(folderdir):
     for name in files:
@@ -72,10 +76,10 @@ for path, dirc, files in os.walk(folderdir):
 json_file_path_d = sc.combo_json(output_path_d,combined_json_outpath_d,object_types_d)
 
 
-output_path_land = "E:/UMD_Project/SWIM/GIS/json/land/temp/"
+output_path_land = folderdir + "json/land/temp/"
 objects_land = ['LNDARE']
 object_types_land = "land"
-combined_json_outpath_land = "E:/UMD_Project/SWIM/GIS/json/land/"
+combined_json_outpath_land = folderdir + "json/land/"
 # iterating over directory and subdirectory to get desired result
 for path, dirc, files in os.walk(folderdir):
     for name in files:
@@ -85,10 +89,10 @@ for path, dirc, files in os.walk(folderdir):
             sc.S57_to_json(str_path, output_path_land, chart, objects_land, object_types_land)
 json_file_path_land = sc.combo_json(output_path_land,combined_json_outpath_land,object_types_land)
 
-output_path_extent = "E:/UMD_Project/SWIM/GIS/json/extent/temp/"
+output_path_extent = folderdir + "json/extent/temp/"
 objects_extent = ['M_COVR']
 object_types_extent = "extent"
-combined_json_outpath_land = "E:/UMD_Project/SWIM/GIS/json/extent/"
+combined_json_outpath_land = folderdir + "json/extent/"
 # iterating over directory and subdirectory to get desired result
 for path, dirc, files in os.walk(folderdir):
     for name in files:
@@ -99,11 +103,11 @@ for path, dirc, files in os.walk(folderdir):
 json_file_path_land = sc.combo_json(output_path_extent,combined_json_outpath_land,object_types_extent)
 
 
-output_path_sound = "E:/UMD_Project/SWIM/GIS/json/sound/temp/"
+output_path_sound = folderdir + "json/sound/temp/"
 objects_sound = ['SOUNDG']
 object_types_sound = "sound"
-ini_output = "E:/UMD_Project/SWIM/GIS/ini/"
-combined_json_outpath_sound = "E:/UMD_Project/SWIM/GIS/json/sound/"
+ini_output = folderdir + "ini/"
+combined_json_outpath_sound = folderdir + "json/sound/"
 #output_path_sound = "E:/UMD_Project/SWIM/GIS/json/sound"
 # iterating over directory and subdirectory to get desired result
 

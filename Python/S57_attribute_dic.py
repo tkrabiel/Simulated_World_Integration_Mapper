@@ -1,7 +1,7 @@
-colour_dic = {"['3', '6', '3']":"red_yellow_red","['3', '1', '3']":"red_orange_red","['1', '11','1']":"white_orange_white","['1', '11']":"white_orange","['4', '3', '4']":"green_red_green","['3', '4', '3']":"red_green_red","['1']":"white","['2']":"black","['3']":"red","['4']":"green","['5']":"blue","['6']":"yellow","['7']":"grey","['8']":"brown","['9']":"amber","['10']":"violet","['11']":"orange","['12']":"magenta","['13']":"pink",} #"color#":"color"
+colour_dic = {"['3', '6', '3']":"red_yellow_red","['3', '1', '3']":"red_orange_red","['1', '11','1']":"white_orange_white","['1', '11']":"white_orange","['4', '3', '4']":"green_red_green","['3', '4', '3']":"red_green_red","['1']":"white","['2']":"black","['3']":"red","['4']":"green","['5']":"blue","['6']":"yellow","['7']":"grey","['8']":"brown","['9']":"amber","['10']":"violet","['11']":"orange","['12']":"magenta","['13']":"pink", "['1', '4']":"white_green","[]":"white"} #"color#":"color"
 boyshp_dic = {'1':'nun','2':'can','3':'spherical','4':'pillar','5':'spar','6':'tun','7':'super_buoy','8':'ice_buoy'} #"shape#":"shape"
 catcam_dic = {'1':'north','2':'east','3':'south','4':'west'}#'cat#':'direction'
-
+bcnshp_dic = {'1':'pole','2':'withy', '3':'tower','4':'lattice','5':'pile','6':'cairn','7':'buoyant'}
 
 
 #x<0.2 = Nothing 0.2>x>0.3 = L  0.6>x>0.3 = LL 0.6>x>0.8 = LLL 0.8>x>=1 = LLLL

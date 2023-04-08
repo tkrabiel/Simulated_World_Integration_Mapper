@@ -106,6 +106,32 @@ def combo_json(output_path,combined_json_outpath,object_types):
 def json_shp(json,shp):
     os.system('ogr2ogr -f "ESRI Shapefile" ' + ' ' + shp + ' ' + json)
 
+#daymarker json_to_ini
+#beacons to ini
+def json_to_ini_bcn(ini_output,json_file_path):
+    file_json = open(json_file_path)
+    json_data = json.load(file_json)
+    # create the INI file below
+    ini_file = open(ini_output + "bcn.ini", "w")
+    count = 0
+    for index, types in enumerate(json_data['features']):
+        key_bcnshp = str(json_data['features'][index]['properties']["BCNSHP"])
+        key_colour = str(json_data['features'][index]['properties']["COLOUR"])
+        bcnshp = bcnshp_dic[key_bcnshp]
+        colour = colour_dic[key_colour]
+        bcn_type = bcnshp + "_" + colour
+        x = json_data['features'][index]['geometry']['coordinates'][0]
+        y = json_data['features'][index]['geometry']['coordinates'][1]
+        ini_file.write('Type(%s)="%s"\nLAT(%s)=%s\nLONG(%s)=%s\n\n' % (str(count), str(bcn_type),
+                                                                       str(count), str(y), str(count), str(x)))
+        # f.write('Type(%s)="(%s)"\nLAT(%s)=%s\nLONG(%s)=%s\n\n' % (str(count), str(buoy_to_ini_dic[key_to_lookup]),
+        # str(count), str(y), str(count), str(x)))
+        count += 1
+    ini_file.close()
+    line = "Number={}\n".format(count)
+    prepend_line(ini_output + "bcn.ini", line)
+
+
 def json_to_ini_buoy(ini_output,json_file_path):
     file_json = open(json_file_path)
     json_data = json.load(file_json)
@@ -228,6 +254,84 @@ def json_to_ini_light(ini_output,json_file_path,height_eye):
         for index, types in enumerate(json_data['features']):
             key_colour = str(json_data['features'][index]['properties']["COLOUR"])
             colour = colour_dic[key_colour]
+            try:#if there are mulitple colors for the same light catch error as vallueerror
+                #make light into number of colors in the light ex: red_green is now 1)red and 2)green in same spot with
+                #red on top and green on bottom
+                #only works right now for 2 colors
+                color_in = colour.index("_")
+                colour1 = colour[0:color_in]
+                red = int(matplotlib.colors.to_rgb(colour1)[0] * 255)
+                green = int(matplotlib.colors.to_rgb(colour1)[1] * 255)
+                blue = int(matplotlib.colors.to_rgb(colour1)[2] * 255)
+                try:
+                    key_SIGSEQ = str(json_data['features'][index]['properties']["SIGSEQ"])
+                    sequence = light_seq(key_SIGSEQ)
+                except KeyError:
+                    sequence = 'L'
+                try:
+                    key_SECTR1 = str(json_data['features'][index]['properties']["SECTR1"])
+                    key_SECTR2 = str(json_data['features'][index]['properties']["SECTR2"])
+                    StartAngle = str(key_SECTR1)[:-2]
+                    EndAngle = str(key_SECTR2)[:-2]
+                except KeyError:
+                    StartAngle = '0'
+                    EndAngle = '360'
+                try:
+                    key_height = str(json_data['features'][index]['properties']["HEIGHT"])
+                    height = str(key_height)[:-2]
+                except KeyError:
+                    height = '4'#top light must be higher than the bottom light
+                range_light = int(1.17 * (math.sqrt((float(height) * 3.3) + math.sqrt(float(height_eye) * 3.3))))
+                range = int(round(range_light))
+                x = json_data['features'][index]['geometry']['coordinates'][0]
+                y = json_data['features'][index]['geometry']['coordinates'][1]
+                ini_file.write(
+                    'Lat(%s)=%s\nLong(%s)=%s\nHeight(%s)=%s\nRed(%s)=%s\nGreen(%s)=%s\nBlue(%s)=%s\nRange(%s)=%s'
+                    '\nSequence(%s)="%s"\nStartAngle(%s)=%s\nEndAngle(%s)=%s\n\n'
+                    % (str(count + 1), str(y), str(count + 1), str(x), str(count + 1),
+                       str(height), str(count + 1), str(red), str(count + 1), str(green), str(count + 1),
+                       str(blue), str(count + 1), str(range), str(count + 1), str(sequence), str(count + 1),
+                       str(StartAngle), str(count + 1), str(EndAngle)))
+                count += 1
+
+                colour2 = colour[(color_in + 1):]
+                red = int(matplotlib.colors.to_rgb(colour2)[0] * 255)
+                green = int(matplotlib.colors.to_rgb(colour2)[1] * 255)
+                blue = int(matplotlib.colors.to_rgb(colour2)[2] * 255)
+                try:
+                    key_SIGSEQ = str(json_data['features'][index]['properties']["SIGSEQ"])
+                    sequence = light_seq(key_SIGSEQ)
+                except KeyError:
+                    sequence = 'L'
+                try:
+                    key_SECTR1 = str(json_data['features'][index]['properties']["SECTR1"])
+                    key_SECTR2 = str(json_data['features'][index]['properties']["SECTR2"])
+                    StartAngle = str(key_SECTR1)[:-2]
+                    EndAngle = str(key_SECTR2)[:-2]
+                except KeyError:
+                    StartAngle = '0'
+                    EndAngle = '360'
+                try:
+                    key_height = str(json_data['features'][index]['properties']["HEIGHT"])
+                    height = str(key_height)[:-2]
+                except KeyError:
+                    height = '3.5'
+                range_light = int(1.17 * (math.sqrt((float(height) * 3.3) + math.sqrt(float(height_eye) * 3.3))))
+                range = int(round(range_light))
+                x = json_data['features'][index]['geometry']['coordinates'][0]
+                y = json_data['features'][index]['geometry']['coordinates'][1]
+                ini_file.write(
+                    'Lat(%s)=%s\nLong(%s)=%s\nHeight(%s)=%s\nRed(%s)=%s\nGreen(%s)=%s\nBlue(%s)=%s\nRange(%s)=%s'
+                    '\nSequence(%s)="%s"\nStartAngle(%s)=%s\nEndAngle(%s)=%s\n\n'
+                    % (str(count + 1), str(y), str(count + 1), str(x), str(count + 1),
+                       str(height), str(count + 1), str(red), str(count + 1), str(green), str(count + 1),
+                       str(blue), str(count + 1), str(range), str(count + 1), str(sequence), str(count + 1),
+                       str(StartAngle), str(count + 1), str(EndAngle)))
+                count += 1
+            except ValueError:
+                red = int(matplotlib.colors.to_rgb(colour)[0] * 255)
+                green = int(matplotlib.colors.to_rgb(colour)[1] * 255)
+                blue = int(matplotlib.colors.to_rgb(colour)[2] * 255)
             try:
                 key_SIGSEQ = str(json_data['features'][index]['properties']["SIGSEQ"])
                 sequence = light_seq(key_SIGSEQ)
@@ -248,9 +352,6 @@ def json_to_ini_light(ini_output,json_file_path,height_eye):
                 height = '3.5'
             range_light = int(1.17 * (math.sqrt((float(height)*3.3) + math.sqrt(float(height_eye)*3.3))))
             range = int(round(range_light))
-            red = int(matplotlib.colors.to_rgb(colour)[0] * 255)
-            green = int(matplotlib.colors.to_rgb(colour)[1] * 255)
-            blue = int(matplotlib.colors.to_rgb(colour)[2] * 255)
             x = json_data['features'][index]['geometry']['coordinates'][0]
             y = json_data['features'][index]['geometry']['coordinates'][1]
             ini_file.write('Lat(%s)=%s\nLong(%s)=%s\nHeight(%s)=%s\nRed(%s)=%s\nGreen(%s)=%s\nBlue(%s)=%s\nRange(%s)=%s'
