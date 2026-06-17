@@ -1,13 +1,13 @@
 # SWIM (Simulated World Integration Mapper)
 
-> ⚠️ **Project Status: Active Development & In Progress**
+> **Project Status: Active Development & In Progress**
 > I am actively developing, iterating, and expanding this project. I am continuously fixing pipeline bugs, refining the architecture for better readability, and finding ways to further optimize the system.
 
 SWIM is my custom, highly optimized spatial pipeline designed to scrape NOAA S-57 electronic navigational charts (`.000` files), extract and compress vector spatial data into a high-performance GeoParquet database, and instantly generate world configuration files (`.ini`) and Digital Elevation Models (DEMs) for the **Bridge Command** ship simulator.
 
 ---
 
-## ✨ Key Features
+## Key Features
 * **Single-File GeoParquet Architecture:** I redesigned the backend to consolidate massive batches of complex S-57 charts into a clean, single-file-per-layer format (e.g., one master `LIGHTS.parquet` file for your entire target area).
 * **Intelligent Spatial Deduplication:** My pipeline automatically detects overlapping chart boundaries and merges identical features based on precise physical geometry to prevent duplicate assets from spawning in the simulator.
 * **Lossless Array Metadata:** I made sure that overlapping chart data (Names, Dates, Scales) is safely preserved as nested Parquet arrays rather than being discarded during spatial groupings.
@@ -23,7 +23,6 @@ SWIM is my custom, highly optimized spatial pipeline designed to scrape NOAA S-5
    ```bash
    pip install -r requirements.txt
 
-```
 
 **Core Libraries I Depend On:**
 
@@ -33,7 +32,7 @@ SWIM is my custom, highly optimized spatial pipeline designed to scrape NOAA S-5
 
 ---
 
-## 🚀 Usage Guide
+## Usage Guide
 
 Launch my main interface by executing:
 
@@ -77,7 +76,7 @@ My long-term vision for SWIM is to evolve it from a local asset parser into a co
 
 ---
 
-## 🧠 Module Breakdown
+## Module Breakdown
 
 | File | Description |
 | --- | --- |
