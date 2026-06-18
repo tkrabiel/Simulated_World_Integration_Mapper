@@ -3,7 +3,11 @@ import geopandas as gpd
 import pandas as pd
 from pathlib import Path
 import math
-from s57_dictionaries import boyshp_dic, catcam_dic, bcnshp_dic, colour_builder, colour_dic, parse_light_sequence, get_rgb
+
+# Imported the new colpat_builder
+from s57_dictionaries import (boyshp_dic, catcam_dic, bcnshp_dic, 
+                              colour_builder, colour_dic, parse_light_sequence, 
+                              get_rgb, colpat_builder)
 
 def load_parquet_layer(db_dir: str, layer_name: str) -> gpd.GeoDataFrame:
     """Helper to load a single master parquet file for a specific layer."""
@@ -17,9 +21,13 @@ def generate_buoy_ini(db_dir, ini_path):
     gdfs = [load_parquet_layer(db_dir, l) for l in layers]
     buoys = pd.concat([gdf for gdf in gdfs if not gdf.empty], ignore_index=True) if gdfs else gpd.GeoDataFrame()
     
-    if buoys.empty:
-        print("No buoys found in database.")
-        return
+    if buoys.empty: return print("No buoys found in database.")
+    
+    # FILTER OUT REMOVED FEATURES
+    if 'STATUS' in buoys.columns:
+        buoys = buoys[buoys['STATUS'] != 'REMOVED']
+
+    if buoys.empty: return print("No active buoys found in database.")
 
     os.makedirs(ini_path, exist_ok=True)
     total_count = len(buoys)
@@ -27,24 +35,28 @@ def generate_buoy_ini(db_dir, ini_path):
     with open(os.path.join(ini_path, "buoy.ini"), "w") as f:
         f.write(f"Number={total_count}\n")
         
-        # itertuples() is lightning fast and doesn't crash on geometries
         for count, row in enumerate(buoys.itertuples()):
-            # getattr is used safely in case a column is entirely missing from the parquet file
             boyshp_raw = getattr(row, 'BOYSHP', '')
             catcam_raw = getattr(row, 'CATCAM', '')
             colour_raw = getattr(row, 'COLOUR', '')
+            colpat_raw = getattr(row, 'COLPAT', '')
             
             boyshp = boyshp_dic.get(str(boyshp_raw).replace('.0', ''), "unknown")
             catcam = str(catcam_raw).replace('.0', '')
             
+            # 1. Grab the pattern. If missing, it remains an empty string.
+            pattern_str = colpat_builder(colpat_raw)
+            pattern_suffix = f"_{pattern_str}" if pattern_str else ""
+            
+            # 2. Build the final buoy string
             if pd.notna(catcam_raw) and catcam in catcam_dic:
-                buoy_type = f"{boyshp}_{catcam_dic[catcam]}"
+                buoy_type = f"{boyshp}_{catcam_dic[catcam]}{pattern_suffix}"
             else:
-                buoy_type = f"{boyshp}_{colour_builder(colour_raw)}"
+                buoy_type = f"{boyshp}_{colour_builder(colour_raw)}{pattern_suffix}"
                 
             f.write(f'Type({count})="{buoy_type}"\nLAT({count})={row.geometry.y}\nLONG({count})={row.geometry.x}\n\n')
             
-    print(f"Buoy INI generated with {total_count} features.")
+    print(f"Buoy INI generated with {total_count} active features.")
 
 def generate_bcn_ini(db_dir, ini_path):
     print("Generating Beacon INI...")
@@ -52,9 +64,13 @@ def generate_bcn_ini(db_dir, ini_path):
     gdfs = [load_parquet_layer(db_dir, l) for l in layers]
     bcns = pd.concat([gdf for gdf in gdfs if not gdf.empty], ignore_index=True) if gdfs else gpd.GeoDataFrame()
 
-    if bcns.empty:
-        print("No beacons found in database.")
-        return
+    if bcns.empty: return print("No beacons found in database.")
+    
+    # FILTER OUT REMOVED FEATURES
+    if 'STATUS' in bcns.columns:
+        bcns = bcns[bcns['STATUS'] != 'REMOVED']
+
+    if bcns.empty: return print("No active beacons found in database.")
 
     os.makedirs(ini_path, exist_ok=True)
     total_count = len(bcns)
@@ -65,21 +81,37 @@ def generate_bcn_ini(db_dir, ini_path):
         for count, row in enumerate(bcns.itertuples()):
             bcnshp_raw = getattr(row, 'BCNSHP', '')
             colour_raw = getattr(row, 'COLOUR', '')
+            colpat_raw = getattr(row, 'COLPAT', '')
             
             bcnshp = bcnshp_dic.get(str(bcnshp_raw).replace('.0', ''), "unknown")
-            bcn_type = f"{bcnshp}_{colour_builder(colour_raw)}"
+            
+            # 1. Grab the color. If it evaluates to 'unknown', force it to 'magenta'.
+            colour = colour_builder(colour_raw)
+            if colour == 'unknown':
+                colour = 'magenta'
+                
+            # 2. Grab the pattern. If missing, tack on '_solid'.
+            pattern_str = colpat_builder(colpat_raw)
+            pattern_suffix = f"_{pattern_str}" if pattern_str else "_solid"
+            
+            # 3. Assemble
+            bcn_type = f"{bcnshp}_{colour}{pattern_suffix}"
             
             f.write(f'Type({count})="{bcn_type}"\nLAT({count})={row.geometry.y}\nLONG({count})={row.geometry.x}\n\n')
             
-    print(f"Beacon INI generated with {total_count} features.")
+    print(f"Beacon INI generated with {total_count} active features.")
 
 def generate_light_ini(db_dir, ini_path, height_eye=15):
     print("Generating Light INI...")
     lights = load_parquet_layer(db_dir, 'LIGHTS')
     
-    if lights.empty:
-        print("No lights found in database.")
-        return
+    if lights.empty: return print("No lights found in database.")
+    
+    # FILTER OUT REMOVED FEATURES
+    if 'STATUS' in lights.columns:
+        lights = lights[lights['STATUS'] != 'REMOVED']
+
+    if lights.empty: return print("No active lights found in database.")
 
     os.makedirs(ini_path, exist_ok=True)
     total_count = len(lights)
@@ -109,4 +141,4 @@ def generate_light_ini(db_dir, ini_path, height_eye=15):
             f.write(f'Red({count})={r}\nGreen({count})={g}\nBlue({count})={b}\nRange({count})={range_light}\n')
             f.write(f'Sequence({count})="{sequence}"\nStartAngle({count})={start_angle}\nEndAngle({count})={end_angle}\n\n')
             
-    print(f"Light INI generated with {total_count} features.")
+    print(f"Light INI generated with {total_count} active features.")

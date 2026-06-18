@@ -30,10 +30,15 @@ colour_dic = {
     '9': 'amber', '10': 'violet', '11': 'orange', '12': 'magenta', '13': 'pink'
 }
 
+colpat_dic = {
+    '1': 'horizontal_stripes', '2': 'vertical_stripes', 
+    '3': 'diagonal_stripes', '4': 'squared', 
+    '5': 'stripes', '6': 'border_stripe'
+}
+
 def colour_builder(colour_raw):
     # Absolutely bulletproof string conversion to bypass Numpy truth-value errors
     try:
-        # If it's an array/list, force it to a comma string
         if hasattr(colour_raw, '__iter__') and not isinstance(colour_raw, str):
             c_str = ",".join(map(str, colour_raw))
         else:
@@ -53,6 +58,28 @@ def colour_builder(colour_raw):
     # Look up the colors
     colors = [colour_dic.get(c, 'unknown') for c in clean_str.split(',')]
     return '_'.join(colors)
+
+def colpat_builder(colpat_raw):
+    """Safely extracts the color pattern, handling arrays/lists if chart makers provided multiple."""
+    try:
+        if hasattr(colpat_raw, '__iter__') and not isinstance(colpat_raw, str):
+            c_str = ",".join(map(str, colpat_raw))
+        else:
+            c_str = str(colpat_raw)
+    except Exception:
+        c_str = str(colpat_raw)
+
+    c_str = c_str.lower().strip()
+    
+    if c_str in ['nan', 'none', '', '[]', '<na>', 'nan,nan']:
+        return ''
+
+    clean_str = c_str.replace('.0', '').replace('[', '').replace(']', '').replace("'", "").replace(' ', '')
+    patterns = [colpat_dic.get(p) for p in clean_str.split(',') if p in colpat_dic]
+
+    if patterns:
+        return '_'.join(patterns)
+    return ''
 
 def parse_light_sequence(sigseq):
     if not sigseq or str(sigseq) == 'nan': return "0.0,0.0"
