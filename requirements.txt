@@ -1,0 +1,10 @@
+customtkinter
+geopandas
+pandas
+pyarrow
+rasterio
+pystac-client
+planetary-computer
+s3fs
+requests
+Pillow
