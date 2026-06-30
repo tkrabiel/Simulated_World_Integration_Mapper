@@ -269,14 +269,26 @@ def build_terrain_assets(db_dir, output_dir, local_noaa_gpkg=None, local_noaa_ti
     final_dem = np.nan_to_num(final_dem, nan=0.0)
 
     # 5. Optional Vector Override (DRGARE)
+    # 5. Optional Vector Override (DRGARE)
     dredge_file = Path(db_dir) / "DRGARE.parquet"
     if dredge_file.exists():
-        dredge_gdf = gpd.read_parquet(dredge_file)
-        if not dredge_gdf.empty:
-            print("    -> Burning DRGARE (Dredged Areas) over DEM...")
-            shapes = ((geom, float(val)) for geom, val in zip(dredge_gdf.geometry, dredge_gdf['DRVAL1']) if gpd.GeoSeries.notna(val))
-            dredge_mask = rasterize(shapes, out_shape=out_shape, transform=topo_transform, fill=0, dtype='float32')
-            final_dem = np.where(dredge_mask > 0, -abs(dredge_mask), final_dem)
+        try:
+            dredge_gdf = gpd.read_parquet(dredge_file)
+            if not dredge_gdf.empty:
+                print("    -> Burning DRGARE (Dredged Areas) over DEM...")
+
+                # FIX: Force the mask to strictly match the exact shape Rasterio generated
+                actual_shape = final_dem.shape
+
+                shapes = ((geom, float(val)) for geom, val in zip(dredge_gdf.geometry, dredge_gdf['DRVAL1']) if
+                          pd.notna(val))
+                dredge_mask = rasterize(shapes, out_shape=actual_shape, transform=topo_transform, fill=0,
+                                        dtype='float32')
+                final_dem = np.where(dredge_mask > 0, -abs(dredge_mask), final_dem)
+
+        except Exception as e:
+            print(
+                f"       [!] Warning: Failed to apply DRGARE dredge depths. Skipping dredge override and moving on. Reason: {e}")
 
     z_min, z_max = final_dem.min(), final_dem.max()
 
